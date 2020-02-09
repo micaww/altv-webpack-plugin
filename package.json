@@ -1,0 +1,14 @@
+{
+  "name": "altv-webpack-plugin",
+  "version": "1.0.0",
+  "description": "A Webpack plugin for bundling code compatible with the alt:V client runtime.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Micah Allen",
+  "license": "ISC",
+  "dependencies": {
+    "webpack-sources": "^1.4.3"
+  }
+}
