@@ -1,7 +1,9 @@
 const { ConcatSource } = require('webpack-sources');
 
 const ALT_RUNTIMES = ['alt', 'alt-client', 'alt-server']; // all modules we will intercept
+
 const ALT_ID = 'alt'; // the variable name to import the alt:V runtime as
+const NATIVES_ID = 'natives'; // the variable name to import the natives runtime as
 
 class AltvPlugin {
     apply(compiler) {
@@ -10,7 +12,9 @@ class AltvPlugin {
         const externals = Array.isArray(options.externals) ? options.externals : [options.externals];
 
         // make all alt:V runtimes external so Webpack doesn't try to bundle them in
-        const altExternals = {};
+        const altExternals = {
+            natives: NATIVES_ID
+        };
         ALT_RUNTIMES.forEach(id => altExternals[id] = ALT_ID);
         externals.push(altExternals);
 
@@ -42,7 +46,8 @@ function addImportHeader(compilation, fileName) {
     const currentSource = compilation.assets[fileName];
 
     compilation.assets[fileName] = new ConcatSource(
-        `import alt from 'alt';\n\n`,
+        `import ${ALT_ID} from 'alt';\n`,
+        `import ${NATIVES_ID} from 'natives';\n`,
         currentSource
     );
 }
