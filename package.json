@@ -1,6 +1,6 @@
 {
   "name": "altv-webpack-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Webpack plugin for bundling code compatible with the alt:V client runtime.",
   "main": "index.js",
   "scripts": {
