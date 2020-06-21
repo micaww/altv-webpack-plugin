@@ -23,11 +23,17 @@ class AltvPlugin {
         compiler.hooks.compilation.tap('AltvPlugin', compilation => {
             compilation.hooks.optimizeChunkAssets.tap('AltvPlugin', chunks => {
                 for (const chunk of chunks) {
-                    const hasAltImport = doesChunkImportAlt(chunk);
-
-                    if (hasAltImport) {
+                    // alt
+                    if (ALT_RUNTIMES.some(module => doesChunkImport(chunk, module))) {
                         for (const fileName of chunk.files) {
-                            addImportHeader(compilation, fileName);
+                            addImportHeader(compilation, fileName, ALT_ID, 'alt');
+                        }
+                    }
+
+                    // alt
+                    if (doesChunkImport(chunk, 'natives')) {
+                        for (const fileName of chunk.files) {
+                            addImportHeader(compilation, fileName, NATIVES_ID, 'natives');
                         }
                     }
                 }
@@ -41,25 +47,27 @@ class AltvPlugin {
  *
  * @param {object} compilation - webpack's compilation object
  * @param {string} fileName - the name of the output file in a chunk
+ * @param {string} importName - the name of the imported variable
+ * @param {string} moduleName - the name of the module to import
  */
-function addImportHeader(compilation, fileName) {
+function addImportHeader(compilation, fileName, importName, moduleName) {
     const currentSource = compilation.assets[fileName];
 
     compilation.assets[fileName] = new ConcatSource(
-        `import ${ALT_ID} from 'alt';\n`,
-        `import ${NATIVES_ID} from 'natives';\n`,
+        `import ${importName} from '${moduleName}';\n`,
         currentSource
     );
 }
 
 /**
- * Checks if a chunk imports any alt:V runtime.
+ * Checks if a chunk imports a module.
  *
  * @param {object} chunk - webpack compilation chunk
+ * @param {string} moduleName - the name of the module.
  */
-function doesChunkImportAlt(chunk) {
+function doesChunkImport(chunk, moduleName) {
     for (const module of chunk._modules) {
-        if (ALT_RUNTIMES.includes(module.id)) return true;
+        if (module.id === moduleName) return true;
     }
 
     return false;
