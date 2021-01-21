@@ -1,4 +1,4 @@
-const { ConcatSource } = require('webpack-sources');
+const webpack = require('webpack');
 
 const ALT_RUNTIMES = ['alt', 'alt-client', 'alt-server']; // all modules we will intercept
 
@@ -21,20 +21,19 @@ class AltvPlugin {
         options.externals = externals;
 
         compiler.hooks.compilation.tap('AltvPlugin', compilation => {
-            compilation.hooks.optimizeChunkAssets.tap('AltvPlugin', chunks => {
-                for (const chunk of chunks) {
+            compilation.hooks.processAssets.tap({
+                name: 'AltvPlugin',
+                stage: webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
+            }, assets => {
+                for (const [name, asset] of Object.entries(assets)) {
                     // alt
-                    if (ALT_RUNTIMES.some(module => doesChunkImport(chunk, module))) {
-                        for (const fileName of chunk.files) {
-                            addImportHeader(compilation, fileName, ALT_ID, 'alt');
-                        }
+                    if (ALT_RUNTIMES.some(module => doesAssetImport(asset, module))) {
+                        addImportHeader(assets, name, ALT_ID, 'alt');
                     }
 
-                    // alt
-                    if (doesChunkImport(chunk, 'natives')) {
-                        for (const fileName of chunk.files) {
-                            addImportHeader(compilation, fileName, NATIVES_ID, 'natives');
-                        }
+                    // natives
+                    if (doesAssetImport(asset, 'natives')) {
+                        addImportHeader(assets, name, NATIVES_ID, 'natives');
                     }
                 }
             });
@@ -45,29 +44,29 @@ class AltvPlugin {
 /**
  * Adds the ESM import for the alt:V runtime to the top of the file.
  *
- * @param {object} compilation - webpack's compilation object
- * @param {string} fileName - the name of the output file in a chunk
+ * @param {object} assets - webpack assets
+ * @param {string} name - asset name
  * @param {string} importName - the name of the imported variable
  * @param {string} moduleName - the name of the module to import
  */
-function addImportHeader(compilation, fileName, importName, moduleName) {
-    const currentSource = compilation.assets[fileName];
-
-    compilation.assets[fileName] = new ConcatSource(
+function addImportHeader(assets, name, importName, moduleName) {
+    assets[name] = new webpack.sources.ConcatSource(
         `import ${importName} from '${moduleName}';\n`,
-        currentSource
+        assets[name]
     );
 }
 
 /**
- * Checks if a chunk imports a module.
+ * Checks if an asset imports a module.
  *
- * @param {object} chunk - webpack compilation chunk
+ * @param {object} asset - webpack asset
  * @param {string} moduleName - the name of the module.
  */
-function doesChunkImport(chunk, moduleName) {
-    for (const module of chunk._modules) {
-        if (module.id === moduleName) return true;
+function doesAssetImport(asset, moduleName) {
+    for (const child of asset.original().getChildren()) {
+        if (child.source().includes(`"${moduleName}"`)) {
+            return true;
+        }
     }
 
     return false;
